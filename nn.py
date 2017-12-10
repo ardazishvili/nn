@@ -24,17 +24,23 @@ def forward_prop(X, weights):
     
     return z, a
 
+def back_prop(y, z, a, weights):
+    delta = []
+    delta.append((a[-1] - y) * sigmoid_prime(z[-1]))
+    
+    for i in range(1, len(weights)):
+        delta.append((weights[-i].T.dot(delta[i-1])) * sigmoid_prime(z[-1-i]))
+        return list(reversed(delta))
+
 def gradient_descent(epochs, rate):
     weights_1 = 2 * np.random.randn(4,3) - 1
     weights_2 = 2 * np.random.randn(1,4) - 1
     for i in range(epochs):
         z, a = forward_prop(X, [weights_1, weights_2])
+        delta = back_prop(y, z, a, [weights_1, weights_2])
         
-        delta_2 = (a[1] - y) * sigmoid_prime(z[1])
-        delta_1 = (weights_2.T.dot(delta_2)) * sigmoid_prime(z[0])
-        
-        weights_2 = weights_2 - rate * delta_2.dot(a[0].T)
-        weights_1 = weights_1 - rate * delta_1.dot(X.T)
+        weights_2 = weights_2 - rate * delta[1].dot(a[0].T)
+        weights_1 = weights_1 - rate * delta[0].dot(X.T)
         
         if (i % (epochs / 10) == 0):
             print ("Error:" + str(np.mean(np.abs(y - a[1]))))
