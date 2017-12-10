@@ -11,6 +11,7 @@ X = np.array([[0,0,1,1],
               [1,1,1,1]])
 y = np.array([[0,1,1,0]])
 
+
 def forward_prop(X, weights):
     z = []
     a = []
@@ -24,6 +25,7 @@ def forward_prop(X, weights):
     
     return z, a
 
+
 def back_prop(y, z, a, weights):
     delta = []
     delta.append((a[-1] - y) * sigmoid_prime(z[-1]))
@@ -33,15 +35,24 @@ def back_prop(y, z, a, weights):
     
     return list(reversed(delta))
 
+
+def update_weights(X, weights, delta, a, rate):
+    w = []
+    w.append(weights[0] - rate * delta[0].dot(X.T))
+    for i in range(1, len(weights)):
+        w.append(weights[i] - rate * delta[i].dot(a[i-1].T))
+        
+    return w
+    
+
 def gradient_descent(epochs, rate):
     weights_1 = 2 * np.random.randn(4,3) - 1
     weights_2 = 2 * np.random.randn(1,4) - 1
     for i in range(epochs):
         z, a = forward_prop(X, [weights_1, weights_2])
         delta = back_prop(y, z, a, [weights_1, weights_2])
+        weights_1, weights_2 = update_weights(X, [weights_1, weights_2], delta, a, rate)
         
-        weights_2 = weights_2 - rate * delta[1].dot(a[0].T)
-        weights_1 = weights_1 - rate * delta[0].dot(X.T)
         
         if (i % (epochs / 10) == 0):
             print ("Error:" + str(np.mean(np.abs(y - a[1]))))
