@@ -30,7 +30,8 @@ def back_prop(y, z, a, weights):
     
     for i in range(1, len(weights)):
         delta.append((weights[-i].T.dot(delta[i-1])) * sigmoid_prime(z[-1-i]))
-        return list(reversed(delta))
+    
+    return list(reversed(delta))
 
 def gradient_descent(epochs, rate):
     weights_1 = 2 * np.random.randn(4,3) - 1
