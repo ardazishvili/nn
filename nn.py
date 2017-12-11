@@ -11,58 +11,52 @@ X = np.array([[0,0,1,1],
               [1,1,1,1]])
 y = np.array([[0,1,1,0]])
 
-
-def forward_prop(X, weights, biases):
-    z = []
-    a = []
-    
-    z.append(weights[0].dot(X) + biases[0])
-    a.append(sigmoid(z[0]))
-    
-    for i in range(1, len(weights)):
-        z.append(weights[i].dot(a[i-1]) + biases[i])
-        a.append(sigmoid(z[i]))
-    
-    return z, a
-
-
-def back_prop(y, z, a, weights):
-    delta = []
-    delta.append((a[-1] - y) * sigmoid_prime(z[-1]))
-    
-    for i in range(1, len(weights)):
-        delta.append((weights[-i].T.dot(delta[i-1])) * sigmoid_prime(z[-1-i]))
-    
-    return list(reversed(delta))
-
-
-def update_weights(X, weights, biases, delta, a, rate):
-    w = []
-    b = []
-    
-    w.append(weights[0] - rate * delta[0].dot(X.T))
-    b.append(biases[0] - rate * np.sum(delta[0], axis=1))
-    for i in range(1, len(weights)):
-        w.append(weights[i] - rate * delta[i].dot(a[i-1].T))
-        b.append(biases[i]  - rate * np.sum(delta[i], axis=1))
-        
-    return w, b
-    
-
-def gradient_descent(epochs, rate):
-    weights_1 = 2 * np.random.randn(4, 3) - 1
-    biases_1 = 2 * np.random.randn(1, 4) - 1
-    
-    weights_2 = 2 * np.random.randn(1, 4) - 1
-    biases_2 = 2 * np.random.randn(1, 1) - 1
-    for i in range(epochs):
-        z, a = forward_prop(X, [weights_1, weights_2], [biases_1, biases_2])
-        delta = back_prop(y, z, a, [weights_1, weights_2])
-        [weights_1, weights_2], [biases_1, biases_2] = update_weights(X, [weights_1, weights_2], [biases_1, biases_2], delta, a, rate)
+            
+class Network:
+    def __init__(self, layers):
+        self.biases = [(2 * np.random.randn(1, m) - 1) for m in layers[1:]]
+        self.weights = [(2 * np.random.randn(n, m) - 1) for n,m in zip(layers[1:], layers[:-1])]
         
         
-        if (i % (epochs / 10) == 0):
-            print ("Error:" + str(np.mean(np.abs(y - a[1]))))
-        
-gradient_descent(50000, 1)
+    def forward_prop(self, X):
+        z = []
+        a = []
+        z.append(self.weights[0].dot(X) + self.biases[0])
+        a.append(sigmoid(z[0]))
+        for i in range(1, len(self.weights)):
+            z.append(self.weights[i].dot(a[i-1]) + self.biases[i])
+            a.append(sigmoid(z[i]))
+        return z, a
+
+
+    def back_prop(self, y, z, a):
+        delta = []
+        delta.append((a[-1] - y) * sigmoid_prime(z[-1]))
+        for i in range(1, len(self.weights)):
+            delta.append((self.weights[-i].T.dot(delta[i-1])) * sigmoid_prime(z[-1-i]))
+        return list(reversed(delta))
+
+
+    def update_weights(self, X, delta, a, rate):
+        w = []
+        b = []
+        w.append(self.weights[0] - rate * delta[0].dot(X.T))
+        b.append(self.biases[0] - rate * np.sum(delta[0], axis=1))
+        for i in range(1, len(self.weights)):
+            w.append(self.weights[i] - rate * delta[i].dot(a[i-1].T))
+            b.append(self.biases[i]  - rate * np.sum(delta[i], axis=1))
+        self.weights, self.biases =  w, b
+   
+   
+    def gradient_descent(self, epochs, rate, X, y):
+        for i in range(epochs):
+            z, a = self.forward_prop(X)
+            delta = self.back_prop(y, z, a)
+            self.update_weights(X, delta, a, rate)
+
+            if (i % (epochs / 10) == 0):
+                print ("Error:" + str(np.mean(np.abs(y - a[1]))))
+                
+n = Network([3, 4 ,1])
+n.gradient_descent(50000, 1, X, y)
 
