@@ -28,13 +28,11 @@ class Network:
         
     def forward_prop(self, X):
         z = []
-        a = []
-        z.append(self.weights[0].dot(X) + self.biases[0])
-        a.append(self.a.f(z[0]))
-        for i in range(1, len(self.weights)):
-            z.append(self.weights[i].dot(a[i-1]) + self.biases[i])
+        a = [X]
+        for i in range(0, len(self.weights)):
+            z.append(self.weights[i].dot(a[i]) + self.biases[i])
             a.append(self.a.f(z[i]))
-        return z, a
+        return z, a[1:]
 
 
     def back_prop(self, y, z, a):
@@ -67,5 +65,5 @@ class Network:
                 
 
 n = Network([3, 6 ,1])
-n.gradient_descent(50000, 1, X, y)
+n.gradient_descent(10000, 1, X, y)
 
