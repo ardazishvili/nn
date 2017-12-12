@@ -19,12 +19,6 @@ class Network:
         self.weights = [(2 * np.random.randn(n, m) - 1) for n,m in zip(layers[1:], layers[:-1])]
         self.a = activation
         
-        #print(self.weights[0].shape)
-        #print(self.weights[1].shape)
-        #print(self.biases[0].shape)
-        #print(self.biases[1].shape)
-        #print('\n\n')
-        
         
     def forward_prop(self, X):
         z = []
@@ -36,22 +30,17 @@ class Network:
 
 
     def back_prop(self, y, z, a):
-        delta = []
-        delta.append((a[-1] - y) * self.a.prime(z[-1]))
+        delta = [(a[-1] - y) * self.a.prime(z[-1])]
         for i in range(1, len(self.weights)):
             delta.append((self.weights[-i].T.dot(delta[i-1])) * self.a.prime(z[-1-i]))
         return list(reversed(delta))
 
 
     def update_weights(self, X, delta, a, rate):
-        w = []
-        b = []
-        w.append(self.weights[0] - rate * delta[0].dot(X.T))
-        b.append(self.biases[0] - rate * np.sum(delta[0], axis=1).reshape( delta[0].shape[0], 1))
-        for i in range(1, len(self.weights)):
-            w.append(self.weights[i] - rate * delta[i].dot(a[i-1].T))
-            b.append(self.biases[i]  - rate * np.sum(delta[i], axis=1))
-        self.weights, self.biases =  w, b
+        a = [X] + a
+        for i in range(0, len(self.weights)):
+            self.weights[i] -= rate * delta[i].dot(a[i].T)
+            self.biases[i] -= rate * np.sum(delta[i], axis=1)[:,np.newaxis]
    
    
     def gradient_descent(self, epochs, rate, X, y):
@@ -64,6 +53,6 @@ class Network:
                 print ("Error at epoch " + str(i) + " :" + str(np.mean(np.abs(y - a[1]))))
                 
 
-n = Network([3, 6 ,1])
+n = Network([3, 4 ,1])
 n.gradient_descent(10000, 1, X, y)
 
