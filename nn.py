@@ -1,22 +1,30 @@
 import numpy as np
+from sklearn.datasets import fetch_mldata
+import matplotlib.pyplot as plt
+
 
 class Sigmoid:
     def f(self, z):
-        return 1 / (1 + np.exp(-z))
+        z = 1.0 / (1 + np.exp(-z))
+        return z
 
     def prime(self, z):
         return self.f(z) * (1 - self.f(z))
 
-X = np.array([[0,0,1,1],
-              [0,1,0,1],
-              [1,1,1,1]])
-y = np.array([[0,1,1,0]])
+#X = np.array([[0,0,1,1],
+              #[0,1,0,1],
+              #[1,1,1,1]])
+#y = np.array([[0,1,1,0]])
+
+mnist = fetch_mldata('MNIST original', data_home='/home/roman/experiments/nn/')
+X = mnist.data.T[:,:10]
+y = mnist.target[np.newaxis,:][:,:10]
 
             
 class Network:
     def __init__(self, layers, activation=Sigmoid()):
-        self.biases = [(2 * np.random.randn(m, 1) - 1) for m in layers[1:]]
-        self.weights = [(2 * np.random.randn(n, m) - 1) for n,m in zip(layers[1:], layers[:-1])]
+        self.biases = [(np.random.uniform(0, 0.01, (m, 1))) for m in layers[1:]]
+        self.weights = [(np.random.uniform(0, 0.01, (n, m))) for n,m in zip(layers[1:], layers[:-1])]
         self.a = activation
         
         
@@ -26,6 +34,8 @@ class Network:
         for i in range(0, len(self.weights)):
             z.append(self.weights[i].dot(a[i]) + self.biases[i])
             a.append(self.a.f(z[i]))
+        #print(z[0])
+        #print(z[1])
         return z, a[1:]
 
 
@@ -44,15 +54,24 @@ class Network:
    
    
     def gradient_descent(self, epochs, rate, X, y):
+        cost = []
         for i in range(epochs):
             z, a = self.forward_prop(X)
             delta = self.back_prop(y, z, a)
             self.update_weights(X, delta, a, rate)
 
-            if (i % (epochs / 10) == 0):
-                print ("Error at epoch " + str(i) + " :" + str(np.mean(np.abs(y - a[1]))))
+            #if (i % (epochs / 10) == 0):
+            print ("Error at epoch " + str(i) + " :" + str(np.mean(np.abs(y - a[-1]))))
+            cost.append(np.mean(np.abs(y - a[-1])))
+        return cost
                 
+epochs = 10
+n = Network([784, 30, 1])
 
-n = Network([3, 4 ,1])
-n.gradient_descent(10000, 1, X, y)
+x = np.arange(epochs)
+y = n.gradient_descent(epochs, 0.001, X, y)
+#fig, ax = plt.subplots(figsize=(12,8))
+#ax.plot(x, y)
+#plt.ylim(0, y[1])
+#plt.show()
 
