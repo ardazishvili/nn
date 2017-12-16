@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.datasets import fetch_mldata
 import matplotlib.pyplot as plt
+import random
 
 
 class Sigmoid:
@@ -16,12 +17,27 @@ def cost_func(a, b):
     return np.sum(np.power(a - b, 2)) / (2 * len(a))
 
 mnist = fetch_mldata('MNIST original', data_home='/home/roman/experiments/nn/')
-q = 1000
-X = mnist.data.T[:, :q] / np.max(mnist.data)
-y = mnist.target[np.newaxis,:][:, :q]
+order = np.arange(70000)
+np.random.shuffle(order)
 
-X_test = mnist.data.T[:, 60000:] / np.max(mnist.data)
-y_test = mnist.target[np.newaxis,:][:, 60000:]
+mnist.data = mnist.data.T / np.max(mnist.data)
+
+i = np.argsort(order)
+mnist.data = mnist.data[:,i]
+mnist.target = mnist.target[i]
+
+all_data = []
+for i in range(70000):
+    y = np.zeros(10).reshape(10,1)
+    yi = mnist.target[i]
+    y[int(yi), 0] = 1
+    #print(y.shape)
+    all_data.append((mnist.data[:,i][:,np.newaxis], y))
+
+training_data = all_data[:50000]
+test_data = all_data[60000:]
+
+
 
             
 class Network:
@@ -34,7 +50,6 @@ class Network:
     def forward_prop(self, X):
         z = []
         a = [X]
-        
         for i, [w, b] in enumerate(zip(self.weights, self.biases)):
             z.append(w.dot(a[i]) + b)
             a.append(self.a.f(z[i]))
@@ -45,14 +60,17 @@ class Network:
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         
-        z, a = self.forward_prop(X)
+        zs, a = self.forward_prop(X)
         
-        delta = (a[-1] - y) * self.a.prime(z[-1])
+        delta = (a[-1] - y) * self.a.prime(zs[-1])
         nabla_b[-1] = delta
         nabla_w[-1] = delta.dot(a[-2].T)
         
-        for layer in range(2, len(self.weights) + 1):
-            z = z[-layer]
+        #print(self.weights[0].shape)
+        #print(self.weights[1].shape)
+        #print(delta.shape)
+        for layer in range(2, 3):
+            z = zs[-layer]
             sp = self.a.prime(z)
             delta = self.weights[-layer+1].T.dot(delta) * sp
             nabla_b[-layer] = delta
@@ -60,56 +78,57 @@ class Network:
         return nabla_b, nabla_w
 
 
-    def update_weights(self, X_batch, y_batch, rate):
+    def update_weights(self, batch, batch_size, rate):
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         
-        for i in range(X_batch.shape[1]):
-            X = X_batch[:, i][:,np.newaxis]
-            y = y_batch[:, i][:,np.newaxis]
+        for X, y in batch:
             delta_nabla_b, delta_nabla_w = self.back_prop(X, y)
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
             
-        self.weights = [w - (rate/len(X_batch))*nw for w, nw in zip(self.weights, nabla_w)]
+        self.weights = [w - (rate/batch_size)*nw for w, nw in list(zip(self.weights, nabla_w))]
             
-        self.biases = [b - (rate/len(X_batch))*nb for b, nb in zip(self.biases, nabla_b)]
-   
-   
-    def gradient_descent(self, epochs, rate, X, y, batch_size, Xt, yt):
-        cost = []
-        for i in range(epochs):
-            for j in range(int(X.shape[1] / batch_size)):
-                X_batch = X[:, j*batch_size:(j+1)*batch_size]
-                y_batch = y[:, j*batch_size:(j+1)*batch_size]
-                self.update_weights(X_batch, y_batch, rate)
-
-
-            self.check_results(Xt, yt)
-            z, a = self.forward_prop(X)
-            c = cost_func(y, a[-1])
-            cost.append(c)
-            print('cost = ' + str(c) + '\n')
+        self.biases = [b - (rate/batch_size)*nb for b, nb in list(zip(self.biases, nabla_b))]
+        
+        
+    def gradient_descent(self, training_data, epochs, mini_batch_size, eta,
+            test_data=None):
+        if test_data: n_test = len(test_data)
+        n = len(training_data)
+        for j in range(epochs):
+            random.shuffle(training_data)
+            mini_batches = [
+                training_data[k:k+mini_batch_size]
+                for k in range(0, n, mini_batch_size)]
+            for mini_batch in mini_batches:
+                self.update_weights(mini_batch, mini_batch_size, eta)
+            if test_data:
+                print("Epoch {0}: {1} / {2}".format(
+                    j, self.evaluate(test_data), n_test))
+            else:
+                print("Epoch {0} complete".format(j))
             
         return cost
     
-    
-    def check_results(self, X_test, y_test):
+    def evaluate(self, test_data):
+        test_results = []
+        for x, y in test_data:
+            z, am = self.forward_prop(x)
+            test_results.append((np.argmax(am[-1]), np.argmax(y)))
+            
         counter = 0
-        for i in range(X_test.shape[1]):
-            X = X_test[:, i][:,np.newaxis]
-            y = y_test[:, i][:,np.newaxis]
-            z, a = self.forward_prop(X)
-            if (np.argmax(a[-1]) == int(y)):
-                counter +=1
-        print(counter)
+        for x, y in test_results:
+            if x == y:
+                counter += 1
+                
+        return counter
                 
 epochs = 30
-batch_size = 1000
+batch_size = 10
 n = Network([784, 30, 10])
 
-x = np.arange(epochs)
-y = n.gradient_descent(epochs, 3.0, X, y, batch_size, X_test, y_test)
+y = n.gradient_descent(training_data, epochs, batch_size, 3.0, test_data=test_data)
 
 
 #fig, ax = plt.subplots(figsize=(12,8))
