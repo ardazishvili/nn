@@ -15,7 +15,7 @@ class Sigmoid:
 
 class Quadratic_cost:
     def f(self, a, y):
-        return np.sum(np.power(a - y, 2)) / (2 * len(a))
+        return 0.5 * np.mean(np.power(a - y, 2))
     
     def derivative(self, a, y, activation_derivative, arg):
         return (a - y) * activation_derivative(arg)
@@ -138,9 +138,9 @@ class Network:
                 
 epochs = 30
 batch_size = 10
-n = Network([784, 30, 10], cost=Cross_entropy_cost())
+n = Network([784, 30, 10])
 
-y = n.gradient_descent(training_data, epochs, batch_size, 0.5, test_data=test_data)
+y = n.gradient_descent(training_data, epochs, batch_size, 3.0, test_data=test_data)
 
 
 #fig, ax = plt.subplots(figsize=(12,8))
