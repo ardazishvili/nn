@@ -41,6 +41,7 @@ test_data = all_data[60000:]
             
 class Network:
     def __init__(self, layers, activation=Sigmoid()):
+        self.layers_num = len(layers)
         self.biases = [np.random.randn(m, 1) for m in layers[1:]]
         self.weights = [np.random.randn(n, m) for n,m in zip(layers[1:], layers[:-1])]
         self.a = activation
@@ -65,7 +66,7 @@ class Network:
         nabla_b[-1] = delta
         nabla_w[-1] = delta.dot(a[-2].T)
 
-        for layer in range(2, 3):
+        for layer in range(2, self.layers_num):
             z = zs[-layer]
             sp = self.a.prime(z)
             delta = self.weights[-layer+1].T.dot(delta) * sp
