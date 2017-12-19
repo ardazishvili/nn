@@ -31,7 +31,6 @@ for i in range(70000):
     y = np.zeros(10).reshape(10,1)
     yi = mnist.target[i]
     y[int(yi), 0] = 1
-    #print(y.shape)
     all_data.append((mnist.data[:,i][:,np.newaxis], y))
 
 training_data = all_data[:50000]
@@ -65,10 +64,7 @@ class Network:
         delta = (a[-1] - y) * self.a.prime(zs[-1])
         nabla_b[-1] = delta
         nabla_w[-1] = delta.dot(a[-2].T)
-        
-        #print(self.weights[0].shape)
-        #print(self.weights[1].shape)
-        #print(delta.shape)
+
         for layer in range(2, 3):
             z = zs[-layer]
             sp = self.a.prime(z)
@@ -78,7 +74,8 @@ class Network:
         return nabla_b, nabla_w
 
 
-    def update_weights(self, batch, batch_size, rate):
+    def update_weights(self, batch, rate):
+        n = len(batch)
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         
@@ -87,13 +84,12 @@ class Network:
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
             
-        self.weights = [w - (rate/batch_size)*nw for w, nw in list(zip(self.weights, nabla_w))]
+            self.weights = [w - (rate/n)*nw for w, nw in list(zip(self.weights, nabla_w))]
             
-        self.biases = [b - (rate/batch_size)*nb for b, nb in list(zip(self.biases, nabla_b))]
+            self.biases = [b - (rate/n)*nb for b, nb in list(zip(self.biases, nabla_b))]
         
         
-    def gradient_descent(self, training_data, epochs, mini_batch_size, eta,
-            test_data=None):
+    def gradient_descent(self, training_data, epochs, mini_batch_size, rate, test_data=None):
         if test_data: n_test = len(test_data)
         n = len(training_data)
         for j in range(epochs):
@@ -102,7 +98,7 @@ class Network:
                 training_data[k:k+mini_batch_size]
                 for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
-                self.update_weights(mini_batch, mini_batch_size, eta)
+                self.update_weights(mini_batch, rate)
             if test_data:
                 print("Epoch {0}: {1} / {2}".format(
                     j, self.evaluate(test_data), n_test))
